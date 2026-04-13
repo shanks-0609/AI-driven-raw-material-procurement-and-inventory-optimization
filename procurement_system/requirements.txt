@@ -1,0 +1,19 @@
+# AI-Driven Raw Material Procurement Optimization System
+# Requirements — Python 3.9+
+
+# Core data & computation
+numpy>=1.24.0
+pandas>=1.5.0
+scipy>=1.10.0
+
+# Machine Learning (for future TODO modules)
+scikit-learn>=1.2.0
+
+# Dashboard / Web UI
+streamlit>=1.28.0
+
+# Visualization
+plotly>=5.15.0
+
+# Utilities
+python-dateutil>=2.8.0

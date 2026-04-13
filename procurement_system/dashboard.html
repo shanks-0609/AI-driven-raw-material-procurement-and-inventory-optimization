@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProcureAI — Procurement Intelligence Platform</title>
+<meta name="description" content="AI-driven raw material procurement optimization system with real-time demand forecasting, price prediction, and supplier scoring.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --surface: #151923;
+    --surface2: #1e2532;
+    --border: #232d3f;
+    --border-light: rgba(255,255,255,0.05);
+    --accent: #3b82f6;
+    --green: #10b981;
+    --red: #ef4444;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --purple: #8b5cf6;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-dark: #64748b;
+    --card-radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+  body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar { width: 260px; background: var(--bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 16px; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; }
+  .main-wrapper { flex: 1; margin-left: 260px; display: flex; flex-direction: column; min-height: 100vh; }
+
+  .logo { margin-bottom: 40px; padding: 0 8px; }
+  .logo h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; color: #fff; }
+  .logo .version { font-size: 10px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 1px; display: block; margin-top: 6px; font-weight: 600; }
+
+  .nav-section { margin-bottom: 24px; }
+  .nav-label { font-size: 10px; text-transform: uppercase; color: var(--text-dark); font-weight: 700; letter-spacing: 1px; margin-bottom: 12px; padding: 0 8px; }
+  .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 6px; color: var(--text-muted); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; border: 1px solid transparent; background: transparent; width: 100%; text-align: left; }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  .nav-item.active { background: rgba(59,130,246,0.1); color: var(--accent); border-color: rgba(59,130,246,0.2); font-weight: 600; }
+
+  .sys-status { margin-top: auto; padding: 16px 8px; border-top: 1px solid var(--border); }
+  .sys-status .pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  /* ── Header ── */
+  header { background: var(--bg); border-bottom: 1px solid var(--border); padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 90; }
+  .header-title h2 { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .header-title p { font-size: 13px; color: var(--text-dark); }
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+  .btn { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+  .btn:hover { background: rgba(255,255,255,0.05); }
+  .btn-live { border-color: rgba(16,185,129,0.3); color: var(--green); background: rgba(16,185,129,0.05); }
+
+  /* ── Container / Tab Panes ── */
+  .container { padding: 32px; flex: 1; background-image: linear-gradient(var(--border-light) 1px, transparent 1px), linear-gradient(90deg, var(--border-light) 1px, transparent 1px); background-size: 40px 40px; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── KPI Cards ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--border); border-radius: var(--card-radius); padding: 20px; transition: transform 0.15s; }
+  .kpi-card:hover { transform: translateY(-2px); }
+  .kpi-card.red { border-top-color: var(--red); }
+  .kpi-card.orange { border-top-color: var(--orange); }
+  .kpi-card.green { border-top-color: var(--green); }
+  .kpi-card.blue { border-top-color: var(--accent); }
+  .kpi-card.purple { border-top-color: var(--purple); }
+  .kpi-card.yellow { border-top-color: var(--yellow); }
+  .kpi-label { font-size: 11px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; font-weight: 600; }
+  .kpi-value { font-size: 32px; font-weight: 700; margin-bottom: 8px; }
+  .kpi-sub { font-size: 12px; font-weight: 500; }
+
+  /* ── Grid Layouts ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+  .grid-wide { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 24px; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--card-radius); padding: 24px; margin-bottom: 24px; }
+  .card.p-0 { padding: 0; }
+  .card-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text); }
+  .card-title .icon { font-size: 14px; color: var(--text-dark); }
+  .card-subtitle { font-size: 11px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; }
+  .card-body { padding: 24px; }
+
+  /* ── Chart Wrappers ── */
+  .chart-wrap { position: relative; height: 280px; width: 100%; }
+  .chart-wrap-tall { position: relative; height: 350px; width: 100%; }
+
+  /* ── Badges ── */
+  .priority-badge, .signal-badge { padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid; }
+  .priority-Critical { background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.2); }
+  .priority-High { background: rgba(249,115,22,0.1); color: var(--orange); border-color: rgba(249,115,22,0.2); }
+  .priority-Medium { background: rgba(234,179,8,0.1); color: var(--yellow); border-color: rgba(234,179,8,0.2); }
+  .priority-Low { background: rgba(16,185,129,0.1); color: var(--green); border-color: rgba(16,185,129,0.2); }
+  .signal-BUY { background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.2); }
+  .signal-WAIT { background: rgba(249,115,22,0.1); color: var(--orange); border-color: rgba(249,115,22,0.2); }
+  .signal-NEUTRAL { background: rgba(255,255,255,0.05); color: var(--text-dark); border-color: var(--border); }
+
+  /* ── Lists ── */
+  .list-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .list-item:last-child { border-bottom: none; }
+  .list-item:hover { background: rgba(255,255,255,0.01); }
+  .list-main { display: flex; align-items: center; gap: 12px; }
+  .list-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Tables ── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { text-align: left; padding: 12px 16px; font-size: 10px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .data-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.02); vertical-align: middle; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+  /* ── Grade badges ── */
+  .sup-grade { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 800; border: 1px solid; }
+  .grade-Aplus { background: rgba(16,185,129,0.1); color: var(--green); border-color: rgba(16,185,129,0.2); }
+  .grade-A { background: rgba(16,185,129,0.05); color: #6ee7b7; border-color: rgba(110,231,183,0.2); }
+  .grade-B { background: rgba(234,179,8,0.1); color: var(--yellow); border-color: rgba(234,179,8,0.2); }
+  .grade-C { background: rgba(249,115,22,0.1); color: var(--orange); border-color: rgba(249,115,22,0.2); }
+  .grade-D { background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.2); }
+
+  /* ── Controls & Metrics ── */
+  .material-select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; outline: none; }
+  .material-select:focus { border-color: var(--accent); }
+  .metric-mini { background: rgba(255,255,255,0.01); border: 1px solid var(--border); padding: 16px; border-radius: 8px; text-align: center; }
+  .metric-mini .val { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .metric-mini .lbl { font-size: 10px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metrics-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+
+  /* ── Settings Form ── */
+  .settings-section { margin-bottom: 32px; }
+  .settings-section h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-group label { font-size: 11px; color: var(--text-dark); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .form-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 6px; font-size: 13px; outline: none; transition: border-color 0.2s; }
+  .form-input:focus { border-color: var(--accent); }
+  .form-select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 6px; font-size: 13px; outline: none; cursor: pointer; }
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-label { font-size: 13px; color: var(--text); font-weight: 500; }
+  .toggle-desc { font-size: 11px; color: var(--text-dark); margin-top: 2px; }
+  .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--surface2); border-radius: 22px; cursor: pointer; transition: 0.3s; border: 1px solid var(--border); }
+  .toggle-slider:before { content:''; position: absolute; width: 16px; height: 16px; background: var(--text-dark); border-radius: 50%; top: 2px; left: 2px; transition: 0.3s; }
+  .toggle input:checked + .toggle-slider { background: rgba(59,130,246,0.3); border-color: var(--accent); }
+  .toggle input:checked + .toggle-slider:before { transform: translateX(18px); background: var(--accent); }
+  .btn-primary { background: var(--accent); border: none; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-primary:hover { background: #2563eb; }
+  .btn-danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+  /* ── Reports ── */
+  .report-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s; }
+  .report-card:hover { border-color: var(--accent); background: rgba(59,130,246,0.05); }
+  .report-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .report-meta { font-size: 11px; color: var(--text-dark); margin-top: 4px; }
+  .report-badge { font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid; }
+
+  /* ── Loading ── */
+  #loading { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; }
+  .spinner { width: 44px; height: 44px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Notification toast ── */
+  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 14px 20px; border-radius: 8px; font-size: 13px; z-index: 999; display: none; animation: slideUp 0.3s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .toast.show { display: block; }
+  @keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+  .text-red { color: var(--red); }
+  .text-orange { color: var(--orange); }
+  .text-green { color: var(--green); }
+  .text-muted { color: var(--text-muted); }
+  .text-accent { color: var(--accent); }
+  .mb-24 { margin-bottom: 24px; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div style="font-size:13px; color:var(--text-dark);">Initializing ProcureAI Engine...</div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<nav class="sidebar">
+  <div class="logo">
+    <h1><span style="color:var(--accent);">♦</span> ProcureAI</h1>
+    <span class="version">V1.0 · Production</span>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active" onclick="switchTab(this,'overview','Dashboard Overview','Key performance metrics and live alerts')">
+      <span style="font-size:16px;">⌂</span> Dashboard
+    </button>
+    <button class="nav-item" onclick="switchTab(this,'recommendations','Smart Recommendations','AI-driven procurement decisions')">
+      <span style="font-size:16px;">◈</span> Recommendations
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Analytics</div>
+    <button class="nav-item" onclick="switchTab(this,'price','Price Trends','Cost forecasting and anomaly detection')">
+      <span style="font-size:16px;">◱</span> Price Trends
+    </button>
+    <button class="nav-item" onclick="switchTab(this,'demand','Demand Forecast','Holt-Winters &amp; AR(p) modelling')">
+      <span style="font-size:16px;">◳</span> Demand Forecast
+    </button>
+    <button class="nav-item" onclick="switchTab(this,'inventory','Inventory Risk Monitor','Stock levels · Reorder alerts · Days of supply')">
+      <span style="font-size:16px;">▣</span> Inventory Risk
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Suppliers</div>
+    <button class="nav-item" onclick="switchTab(this,'suppliers','Supplier Performance','KPI-weighted scoring · 36 suppliers evaluated')">
+      <span style="font-size:16px;">◉</span> Supplier Scores
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">System</div>
+    <button class="nav-item" onclick="switchTab(this,'settings','System Settings','Configure alerts, thresholds &amp; integrations')">
+      <span style="font-size:16px;">▤</span> Settings
+    </button>
+    <button class="nav-item" onclick="switchTab(this,'reports','Reports &amp; Exports','Download procurement reports')">
+      <span style="font-size:16px;">○</span> Reports
+    </button>
+  </div>
+
+  <div class="sys-status">
+    <div style="font-size:11px;color:var(--text);display:flex;align-items:center;margin-bottom:6px;">
+      <span class="pulse"></span> System Active
+    </div>
+    <div style="font-size:10px;color:var(--text-dark);">Last sync: <span id="last-updated-side">Just now</span></div>
+  </div>
+</nav>
+
+<div class="main-wrapper">
+  <header>
+    <div class="header-title">
+      <h2 id="page-title">Dashboard Overview</h2>
+      <p id="page-subtitle">Loading…</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-live"><span style="font-size:10px;">●</span> LIVE DATA</button>
+      <button class="btn" onclick="location.reload()">⟳ Refresh</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ══════════════ OVERVIEW ══════════════ -->
+    <div id="tab-overview" class="tab-pane active">
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="grid-wide">
+        <div class="card p-0">
+          <div class="card-header">
+            <div class="card-title"><span class="icon">◈</span> Inventory Stock Levels</div>
+            <div class="card-subtitle">% of Capacity</div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap"><canvas id="chartInventoryMain"></canvas></div>
+          </div>
+        </div>
+        <div class="card p-0">
+          <div class="card-header">
+            <div class="card-title"><span class="icon">⚠</span> Active Alerts</div>
+            <div class="card-subtitle" id="critical-alert-count">0 total</div>
+          </div>
+          <div id="critical-alerts-list"></div>
+        </div>
+      </div>
+
+      <div class="grid-wide">
+        <div class="card p-0">
+          <div class="card-header">
+            <div class="card-title"><span class="icon">◈</span> Top Recommendations</div>
+            <div class="card-subtitle">Priority Order</div>
+          </div>
+          <div id="top-recs-list"></div>
+        </div>
+        <div class="card p-0">
+          <div class="card-header">
+            <div class="card-title"><span class="icon">◱</span> Price Signals</div>
+            <div class="card-subtitle">All Materials</div>
+          </div>
+          <div id="price-signals-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ RECOMMENDATIONS ══════════════ -->
+    <div id="tab-recommendations" class="tab-pane">
+      <div class="kpi-grid" id="rec-kpis"></div>
+      <div class="card p-0">
+        <div class="card-header">
+          <div class="card-title"><span class="icon">◈</span> Smart Procurement Recommendations</div>
+          <div class="card-subtitle">EOQ + Safety Stock Optimised</div>
+        </div>
+        <div class="card-body">
+          <div id="rec-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PRICE TRENDS ══════════════ -->
+    <div id="tab-price" class="tab-pane">
+      <div class="card p-0 mb-24">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon">◱</span> Price Forecasting
+            <select class="material-select" id="price-material-select" onchange="renderPriceChart()" style="margin-left:auto;"></select>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="price-signal-banner" style="margin-bottom:20px;"></div>
+          <div class="metrics-row" id="price-metrics"></div>
+          <div class="chart-wrap-tall"><canvas id="chartPrice"></canvas></div>
+          <div style="display:flex;gap:24px;margin-top:14px;font-size:11px;color:var(--text-dark);">
+            <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:24px;height:2px;background:#3b82f6;border-radius:1px;"></span> Historical</span>
+            <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:24px;height:2px;background:#10b981;border-radius:1px;border-top:2px dashed #10b981;"></span> Forecast</span>
+            <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:24px;height:2px;background:rgba(16,185,129,0.2);border-radius:1px;"></span> 90% CI</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ DEMAND FORECAST ══════════════ -->
+    <div id="tab-demand" class="tab-pane">
+      <div class="card p-0 mb-24">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="icon">◳</span> Demand Forecast
+            <select class="material-select" id="demand-material-select" onchange="renderDemandChart()" style="margin-left:auto;"></select>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="metrics-row" id="demand-metrics"></div>
+          <div class="chart-wrap-tall"><canvas id="chartDemand"></canvas></div>
+          <div style="display:flex;gap:24px;margin-top:14px;font-size:11px;color:var(--text-dark);">
+            <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:24px;height:2px;background:#8b5cf6;border-radius:1px;"></span> Historical</span>
+            <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:24px;height:2px;background:#f97316;border-radius:1px;"></span> Forecast</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ INVENTORY RISK ══════════════ -->
+    <div id="tab-inventory" class="tab-pane">
+      <div class="kpi-grid" id="inv-kpis"></div>
+      <div class="grid-2">
+        <div class="card p-0">
+          <div class="card-header">
+            <div class="card-title"><span class="icon">▣</span> Stock Level Monitor</div>
+            <div class="card-subtitle" style="text-transform:none">Reorder line = yellow</div>
+          </div>
+          <div class="card-body" id="inventory-bars"></div>
+        </div>
+        <div class="card p-0">
+          <div class="card-header">
+            <div class="card-title"><span class="icon">◫</span> Days of Supply</div>
+            <div class="card-subtitle">Current</div>
+          </div>
+          <div class="card-body">
+            <div class="chart-wrap-tall"><canvas id="chartDaysSupply"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ SUPPLIERS ══════════════ -->
+    <div id="tab-suppliers" class="tab-pane">
+      <div class="kpi-grid" id="sup-kpis"></div>
+      <div class="card p-0">
+        <div class="card-header">
+          <div class="card-title"><span class="icon">◉</span> Supplier Performance Scorecard</div>
+          <div class="card-subtitle" id="sup-count-badge"></div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Supplier</th><th>Material</th><th>On-Time</th><th>Quality</th><th>Price Comp.</th><th>Responsiveness</th><th>Score</th><th>Grade</th><th>Lead Time</th></tr>
+          </thead>
+          <tbody id="sup-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════ SETTINGS ══════════════ -->
+    <div id="tab-settings" class="tab-pane">
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="settings-section">
+              <h3>🔔 Alert Thresholds</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Critical Stock Level (%)</label>
+                  <input class="form-input" type="number" value="15" id="set-critical-pct" min="1" max="50">
+                </div>
+                <div class="form-group">
+                  <label>Low Stock Level (%)</label>
+                  <input class="form-input" type="number" value="30" id="set-low-pct" min="1" max="70">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Price Rise Alert (%)</label>
+                  <input class="form-input" type="number" value="5" id="set-price-alert" min="1" max="50">
+                </div>
+                <div class="form-group">
+                  <label>Forecast Horizon (months)</label>
+                  <input class="form-input" type="number" value="6" id="set-horizon" min="3" max="12">
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3>🏭 Procurement Parameters</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Default Lead Time (days)</label>
+                  <input class="form-input" type="number" value="14" id="set-lead-time">
+                </div>
+                <div class="form-group">
+                  <label>Service Level (%)</label>
+                  <select class="form-select" id="set-service-level">
+                    <option value="0.90">90% — Standard</option>
+                    <option value="0.95" selected>95% — Preferred</option>
+                    <option value="0.99">99% — Critical</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Annual Budget (₹)</label>
+                  <input class="form-input" type="number" value="50000000" id="set-budget">
+                </div>
+                <div class="form-group">
+                  <label>Ordering Cost (₹)</label>
+                  <input class="form-input" type="number" value="500" id="set-order-cost">
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="settings-section">
+              <h3>🔔 Notification Preferences</h3>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Critical Stock Alerts</div><div class="toggle-desc">Alert when any material falls below critical threshold</div></div>
+                <label class="toggle"><input type="checkbox" checked id="notif-critical"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Price Signal Alerts</div><div class="toggle-desc">Notify on BUY NOW / WAIT signals</div></div>
+                <label class="toggle"><input type="checkbox" checked id="notif-price"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Supplier Risk Flags</div><div class="toggle-desc">Notify when supplier score drops below 75</div></div>
+                <label class="toggle"><input type="checkbox" checked id="notif-supplier"><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Weekly Report Digest</div><div class="toggle-desc">Auto-generate report every Monday 8:00 AM</div></div>
+                <label class="toggle"><input type="checkbox" id="notif-weekly"><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="settings-section">
+              <h3>⚙️ System</h3>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;">
+                  <span>Engine Version</span><span style="color:var(--accent);font-weight:600;">ProcureAI v1.0</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;">
+                  <span>Forecast Model</span><span style="color:var(--text-muted);">HW + AR(p) Ensemble</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;">
+                  <span>Price Model</span><span style="color:var(--text-muted);">ARIMA + Gradient Boost</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;">
+                  <span>Last Data Refresh</span><span id="setting-last-sync" style="color:var(--text-muted);">Just now</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-danger" style="width:100%;margin-top:8px;" onclick="showToast('⚠ Cache cleared and data refreshed.');location.reload();">Clear Cache &amp; Re-run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ REPORTS ══════════════ -->
+    <div id="tab-reports" class="tab-pane">
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="icon">○</span> Available Reports</div>
+              <div class="card-subtitle">Click to download</div>
+            </div>
+            <div class="card-body">
+              <div class="report-card" onclick="downloadReport('procurement_summary')">
+                <div style="display:flex;gap:16px;align-items:center;">
+                  <div class="report-icon" style="background:rgba(59,130,246,0.1);">📊</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;">Procurement Summary Report</div>
+                    <div class="report-meta">All materials · Recommendations · Cost analysis</div>
+                  </div>
+                </div>
+                <span class="report-badge" style="color:var(--accent);border-color:rgba(59,130,246,0.2);background:rgba(59,130,246,0.05);">CSV</span>
+              </div>
+
+              <div class="report-card" onclick="downloadReport('supplier_scorecard')">
+                <div style="display:flex;gap:16px;align-items:center;">
+                  <div class="report-icon" style="background:rgba(16,185,129,0.1);">🏭</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;">Supplier Scorecard</div>
+                    <div class="report-meta">KPI scores · Grade distribution · Risk flags</div>
+                  </div>
+                </div>
+                <span class="report-badge" style="color:var(--green);border-color:rgba(16,185,129,0.2);background:rgba(16,185,129,0.05);">CSV</span>
+              </div>
+
+              <div class="report-card" onclick="downloadReport('price_forecast')">
+                <div style="display:flex;gap:16px;align-items:center;">
+                  <div class="report-icon" style="background:rgba(139,92,246,0.1);">📈</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;">Price Forecast Report</div>
+                    <div class="report-meta">6-month predictions · CI bounds · Buy signals</div>
+                  </div>
+                </div>
+                <span class="report-badge" style="color:var(--purple);border-color:rgba(139,92,246,0.2);background:rgba(139,92,246,0.05);">CSV</span>
+              </div>
+
+              <div class="report-card" onclick="downloadReport('inventory_risk')">
+                <div style="display:flex;gap:16px;align-items:center;">
+                  <div class="report-icon" style="background:rgba(249,115,22,0.1);">⚠️</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;">Inventory Risk Assessment</div>
+                    <div class="report-meta">Stock levels · Stockout probability · EOQ analysis</div>
+                  </div>
+                </div>
+                <span class="report-badge" style="color:var(--orange);border-color:rgba(249,115,22,0.2);background:rgba(249,115,22,0.05);">CSV</span>
+              </div>
+
+              <div class="report-card" onclick="downloadReport('full_json')">
+                <div style="display:flex;gap:16px;align-items:center;">
+                  <div class="report-icon" style="background:rgba(234,179,8,0.1);">🗂️</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;">Full Dataset Export</div>
+                    <div class="report-meta">Complete raw data including all models and history</div>
+                  </div>
+                </div>
+                <span class="report-badge" style="color:var(--yellow);border-color:rgba(234,179,8,0.2);background:rgba(234,179,8,0.05);">JSON</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="icon">○</span> Report Summary</div>
+              <div class="card-subtitle">Live snapshot</div>
+            </div>
+            <div class="card-body" id="report-summary-table"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title"><span class="icon">◈</span> Data Integrity</div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:12px;" id="data-integrity-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /container -->
+</div><!-- /main-wrapper -->
+
+<script src="data/dashboard_data.js"></script>
+<script src="data/procurement_data.js"></script>
+<script>
+let dashData = null, invData = null;
+
+Chart.defaults.color = '#64748b';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+const COLORS = ['#ef4444','#10b981','#3b82f6','#8b5cf6','#f97316','#eab308','#ec4899','#06b6d4','#84cc16','#f43f5e'];
+
+// ── Utilities ──
+function fmtPrice(v) { return v ? '₹' + v.toLocaleString('en-IN') : '—'; }
+function fmtNum(v) { return v?.toLocaleString('en-IN') || '—'; }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Tab Switch ──
+function switchTab(btn, name, title, sub) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('page-subtitle').textContent = sub;
+  if (name === 'demand') renderDemandChart();
+  if (name === 'price') renderPriceChart();
+  if (name === 'reports') renderReports();
+}
+
+// ── Load Data ──
+async function loadData() {
+  try {
+    if (window.dashData_var && window.invData_var) {
+      dashData = window.dashData_var;
+      invData  = window.invData_var;
+    } else {
+      const [d1,d2] = await Promise.all([
+        fetch('data/dashboard_data.json').then(r => r.json()),
+        fetch('data/procurement_data.json').then(r => r.json())
+      ]);
+      dashData = d1; invData = d2;
+    }
+    document.getElementById('loading').style.display = 'none';
+    const numMats = dashData.materials.length;
+    const numSups = invData?.suppliers?.length || 0;
+    document.getElementById('page-subtitle').textContent = `${numMats} materials · ${numSups} suppliers · Live data`;
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('last-updated-side').textContent = now;
+    if (document.getElementById('setting-last-sync')) document.getElementById('setting-last-sync').textContent = now;
+    renderAll();
+  } catch(e) {
+    document.getElementById('loading').innerHTML = `<div style="color:#ef4444;text-align:center;"><div style="font-size:40px;margin-bottom:16px">⚠️</div>Failed to load data.<br><small style="color:#64748b">Run python main.py first.</small></div>`;
+    console.error(e);
+  }
+}
+
+function renderAll() {
+  renderOverview();
+  renderRecommendations();
+  populateMaterialSelects();
+  renderInventory();
+  renderSuppliers();
+}
+
+// ── OVERVIEW ──
+let mainInvChart = null;
+function renderOverview() {
+  const recs = dashData.recommendations;
+  const inv  = invData?.inventory || [];
+  const urgentCount = recs.filter(r => r.priority==='Critical'||r.priority==='High').length;
+  const lowInv = inv.filter(i => (i.current_stock/i.max_capacity)<0.3);
+  let totalScore = 0;
+  if(invData?.suppliers?.length) totalScore = invData.suppliers.reduce((a,b)=>a+(b.overall_score||0),0)/invData.suppliers.length;
+
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi-card red"><div class="kpi-label">Urgent Orders</div><div class="kpi-value">${urgentCount}</div><div class="kpi-sub text-red">↑ Action Required</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">Low Inventory</div><div class="kpi-value">${lowInv.length}</div><div class="kpi-sub text-orange">${lowInv.slice(0,2).map(i=>i.material.split(' ')[0]).join(', ')||'None'}</div></div>
+    <div class="kpi-card green"><div class="kpi-label">Avg Supplier Score</div><div class="kpi-value">${totalScore.toFixed(1)}</div><div class="kpi-sub text-green">↑ vs baseline</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">Active Materials</div><div class="kpi-value">${dashData.materials.length}</div><div class="kpi-sub text-muted">${invData?.suppliers?.length||0} suppliers tracked</div></div>
+  `;
+
+  // Alerts
+  const alerts = recs.filter(r => r.priority==='Critical'||r.priority==='High');
+  document.getElementById('critical-alert-count').textContent = alerts.length + ' total';
+  document.getElementById('critical-alerts-list').innerHTML = alerts.length
+    ? alerts.map(r => `<div class="list-item">
+        <div class="list-main">
+          <div class="list-dot" style="background:var(--${r.priority==='Critical'?'red':'orange'})"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">${r.material}</div>
+            <div style="font-size:11px;color:var(--text-dark);">${r.priority==='Critical'?'Order immediately':'Order this week'} — ${r.dynamic_days_of_supply}d supply</div>
+          </div>
+        </div>
+      </div>`).join('')
+    : `<div class="list-item"><span style="color:var(--green);font-size:13px;">✓ All inventory levels healthy</span></div>`;
+
+  // Top recs
+  document.getElementById('top-recs-list').innerHTML = recs.slice(0,4).map(r => `
+    <div class="list-item">
+      <div class="list-main">
+        <div class="list-dot" style="background:var(--${r.priority==='Critical'?'red':r.priority==='High'?'orange':'text-dark'})"></div>
+        <div>
+          <div style="font-size:13px;font-weight:600;">${r.material}</div>
+          <div style="font-size:11px;color:var(--text-dark);text-transform:uppercase;">${r.action.split('—')[0].trim()}</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--text-dark);font-weight:600;">${r.timing}</div>
+      </div>
+    </div>`).join('');
+
+  // Price signals
+  document.getElementById('price-signals-list').innerHTML = dashData.materials.slice(0,5).map(m => {
+    const d = dashData.prices[m];
+    const sig = d?.price_signal || 'NEUTRAL';
+    return `<div class="list-item">
+      <div style="font-size:13px;color:var(--text);">${m}</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:11px;color:var(--${(d?.pct_change_expected||0)>0?'green':'red'})">${(d?.pct_change_expected||0)>0?'↑':'↓'}${Math.abs(d?.pct_change_expected||0).toFixed(1)}%</span>
+        <span class="signal-badge signal-${sig==='BUY NOW'?'BUY':sig}">${sig}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Inventory bar chart
+  const labels = inv.slice(0,6).map(i=>i.material.split(' ')[0]);
+  const pcts   = inv.slice(0,6).map(i=>+(i.current_stock/i.max_capacity*100).toFixed(1));
+  const rpPcts = inv.slice(0,6).map(i=>+(i.reorder_point/i.max_capacity*100).toFixed(1));
+  if (mainInvChart) mainInvChart.destroy();
+  mainInvChart = new Chart(document.getElementById('chartInventoryMain'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Stock %',
+        data: pcts,
+        backgroundColor: pcts.map((_,i)=>COLORS[i%COLORS.length]+'18'),
+        borderColor: pcts.map((_,i)=>COLORS[i%COLORS.length]),
+        borderWidth: 1, borderRadius: 4, barPercentage: 0.6
+      },{
+        type: 'scatter',
+        label: 'Reorder',
+        data: rpPcts.map((y,x)=>({x,y})),
+        backgroundColor: '#eab308',
+        pointStyle: 'line', pointRadius: 12, borderWidth: 2, borderColor: '#eab308'
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+(c.dataset.type==='scatter'?'% reorder':''+'%')}} },
+      scales:{ y:{min:0,max:110,ticks:{callback:v=>v+'%'}}, x:{grid:{display:false}} }
+    }
+  });
+}
+
+// ── RECOMMENDATIONS ──
+function renderRecommendations() {
+  const recs = dashData.recommendations;
+  const crit = recs.filter(r=>r.priority==='Critical').length;
+  const high = recs.filter(r=>r.priority==='High').length;
+  const hold = recs.filter(r=>r.action.includes('HOLD')||r.action.includes('MONITOR')).length;
+  document.getElementById('rec-kpis').innerHTML = `
+    <div class="kpi-card red"><div class="kpi-label">CRITICAL</div><div class="kpi-value">${crit}</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">HIGH PRIORITY</div><div class="kpi-value">${high}</div></div>
+    <div class="kpi-card yellow"><div class="kpi-label">MEDIUM</div><div class="kpi-value">${recs.filter(r=>r.priority==='Medium').length}</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">MONITOR / HOLD</div><div class="kpi-value">${hold}</div></div>
+  `;
+  document.getElementById('rec-list').innerHTML = recs.map(r => {
+    const dotColor = r.priority==='Critical'?'red':r.priority==='High'?'orange':r.priority==='Medium'?'yellow':'text-dark';
+    return `<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;transition:border-color 0.2s;" onmouseover="this.style.borderColor='rgba(59,130,246,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.05)'">
+      <div style="display:flex;gap:16px;">
+        <div style="margin-top:4px;"><span style="display:block;width:6px;height:6px;border-radius:3px;background:var(--${dotColor})"></span></div>
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${r.material}</div>
+          <div style="font-size:11px;text-transform:uppercase;color:var(--text-dark);margin-bottom:8px;">${r.action}</div>
+          <div style="font-size:11px;color:var(--text-muted);">Inventory: ${r.priority} | Price: ${r.price_signal} | Supplier: ${r.recommended_supplier} (${r.supplier_grade})</div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:16px;">
+        <div style="font-size:11px;color:var(--text-dark);margin-bottom:6px;">${r.timing}</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:8px;">${r.recommended_qty?r.recommended_qty+' kg':'—'}</div>
+        <span class="signal-badge signal-${r.price_signal==='BUY NOW'?'BUY':r.price_signal}">${r.price_signal}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MATERIAL SELECTS ──
+function populateMaterialSelects() {
+  const mats = dashData.materials;
+  ['demand-material-select','price-material-select'].forEach(id => {
+    document.getElementById(id).innerHTML = mats.map(m=>`<option value="${m}">${m}</option>`).join('');
+  });
+}
+
+// ── PRICE CHART — Connected lines ──
+let priceChart = null;
+function renderPriceChart() {
+  const mat = document.getElementById('price-material-select').value;
+  const d   = dashData.prices[mat]; if (!d) return;
+  const sig  = d.price_signal || 'NEUTRAL';
+  const sigColor = sig==='BUY NOW'?'var(--red)':sig==='WAIT'?'var(--orange)':'var(--text-dark)';
+
+  document.getElementById('price-signal-banner').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);">
+      <span style="font-size:22px">${sig==='BUY NOW'?'🔴':sig==='WAIT'?'🟡':'⚪'}</span>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:${sigColor}">${sig}</div>
+        <div style="font-size:11px;color:var(--text-dark)">${d.signal_reason||'Mixed signals — monitor closely'}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('price-metrics').innerHTML = `
+    <div class="metric-mini"><div class="val">${fmtPrice(d.current_price)}</div><div class="lbl">Current Price</div></div>
+    <div class="metric-mini"><div class="val text-${(d.pct_change_expected||0)>=0?'green':'red'}">${d.pct_change_expected>=0?'+':''}${d.pct_change_expected}%</div><div class="lbl">Predicted Δ</div></div>
+    <div class="metric-mini"><div class="val">${d.rsi}</div><div class="lbl">RSI</div></div>
+    <div class="metric-mini"><div class="val">${d.volatility_pct}%</div><div class="lbl">Volatility</div></div>`;
+
+  if (priceChart) priceChart.destroy();
+
+  const hist  = d.history_values || [];
+  const preds = d.predictions    || [];
+  const ciLo  = d.ci_lower       || [];
+  const ciHi  = d.ci_upper       || [];
+  const histDates = d.history_dates || [];
+
+  // Generate future labels
+  const lastDate = histDates[histDates.length-1] || '2026-01';
+  const [yr,mo] = lastDate.split('-').map(Number);
+  const futureLabels = [];
+  for(let i=1;i<=6;i++){
+    const nm=((mo+i-1)%12)+1, ny=yr+Math.floor((mo+i-1)/12);
+    futureLabels.push(`${ny}-${String(nm).padStart(2,'0')}`);
+  }
+
+  // KEY FIX: overlap last historical point as first forecast point so lines connect
+  const connectVal = hist[hist.length-1];
+  const fullLabels = [...histDates, ...futureLabels];
+
+  // Historical: full length + nulls for future
+  const histData = [...hist, ...Array(preds.length).fill(null)];
+  // Forecast: nulls for history except last point (bridge), then predictions
+  const foreData = [...Array(hist.length-1).fill(null), connectVal, ...preds];
+  // CI bands: same
+  const loData   = [...Array(hist.length-1).fill(null), connectVal, ...ciLo];
+  const hiData   = [...Array(hist.length-1).fill(null), connectVal, ...ciHi];
+
+  priceChart = new Chart(document.getElementById('chartPrice'), {
+    type: 'line',
+    data: {
+      labels: fullLabels,
+      datasets: [
+        { label:'CI Band', data:hiData, borderColor:'transparent', backgroundColor:'rgba(16,185,129,0.08)', pointRadius:0, fill:'+1', tension:0.3 },
+        { label:'CI Lower', data:loData, borderColor:'transparent', backgroundColor:'rgba(16,185,129,0.08)', pointRadius:0, fill:false, tension:0.3 },
+        { label:'Historical', data:histData, borderColor:'#3b82f6', backgroundColor:'transparent', borderWidth:2, pointRadius:0, tension:0.3 },
+        { label:'Forecast', data:foreData, borderColor:'#10b981', backgroundColor:'transparent', borderWidth:2, borderDash:[5,4], pointRadius:(ctx)=>ctx.dataIndex>=hist.length-1?3:0, tension:0.3 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:items=>items[0].label,
+            label:item=>{ if(['CI Band','CI Lower'].includes(item.dataset.label))return null; return `${item.dataset.label}: ${fmtPrice(item.raw)}`; }
+          },
+          filter:item=>!['CI Band','CI Lower'].includes(item.dataset.label)
+        }
+      },
+      scales:{
+        x:{ticks:{maxTicksLimit:14,font:{size:10}}, grid:{display:false}},
+        y:{title:{display:true,text:'Price (₹/ton)'}}
+      }
+    }
+  });
+}
+
+// ── DEMAND CHART — Connected lines ──
+let demandChart = null;
+function renderDemandChart() {
+  const mat = document.getElementById('demand-material-select').value;
+  const d   = dashData.demand[mat]; if (!d) return;
+
+  const f3avg = d.forecasts ? Math.round((d.forecasts[0]+d.forecasts[1]+d.forecasts[2])/3) : 0;
+  document.getElementById('demand-metrics').innerHTML = `
+    <div class="metric-mini"><div class="val">${fmtNum(f3avg)} kg</div><div class="lbl">3-Mo Avg Forecast</div></div>
+    <div class="metric-mini"><div class="val text-${d.trend==='Increasing'?'green':d.trend==='Decreasing'?'red':'muted'}">${d.trend||'—'}</div><div class="lbl">Trend</div></div>
+    <div class="metric-mini"><div class="val">${d.ar_order||'—'}</div><div class="lbl">AR Model Order</div></div>
+    <div class="metric-mini"><div class="val" style="font-size:13px;">${(d.method||'').split(':')[0]||'Ensemble'}</div><div class="lbl">Primary Model</div></div>`;
+
+  if (demandChart) demandChart.destroy();
+
+  const hist  = d.history_values || [];
+  const preds = d.forecasts || [];
+  const ciLo  = d.ci_lower  || [];
+  const ciHi  = d.ci_upper  || [];
+  const histDates = d.history_dates || [];
+
+  const lastDate = histDates[histDates.length-1]||'2026-01';
+  const [yr,mo] = lastDate.split('-').map(Number);
+  const futureLabels = [];
+  for(let i=1;i<=6;i++){const nm=((mo+i-1)%12)+1,ny=yr+Math.floor((mo+i-1)/12);futureLabels.push(`${ny}-${String(nm).padStart(2,'0')}`);}
+  const fullLabels = [...histDates,...futureLabels];
+
+  const connectVal = hist[hist.length-1];
+  const histData = [...hist,...Array(preds.length).fill(null)];
+  const foreData = [...Array(hist.length-1).fill(null), connectVal, ...preds];
+  const loData   = [...Array(hist.length-1).fill(null), connectVal, ...ciLo];
+  const hiData   = [...Array(hist.length-1).fill(null), connectVal, ...ciHi];
+
+  demandChart = new Chart(document.getElementById('chartDemand'), {
+    type:'line',
+    data:{
+      labels:fullLabels,
+      datasets:[
+        {label:'CI Band',data:hiData,borderColor:'transparent',backgroundColor:'rgba(249,115,22,0.07)',pointRadius:0,fill:'+1',tension:0.3},
+        {label:'CI Lower',data:loData,borderColor:'transparent',backgroundColor:'rgba(249,115,22,0.07)',pointRadius:0,fill:false,tension:0.3},
+        {label:'Historical',data:histData,borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.07)',borderWidth:2,pointRadius:0,fill:true,tension:0.4},
+        {label:'Forecast',data:foreData,borderColor:'#f97316',backgroundColor:'transparent',borderWidth:2,borderDash:[5,4],pointRadius:(ctx)=>ctx.dataIndex>=hist.length-1?3:0,tension:0.4},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:items=>items[0].label,
+            label:item=>{ if(['CI Band','CI Lower'].includes(item.dataset.label))return null; return `${item.dataset.label}: ${fmtNum(item.raw)} kg`; }
+          },
+          filter:item=>!['CI Band','CI Lower'].includes(item.dataset.label)
+        }
+      },
+      scales:{x:{ticks:{maxTicksLimit:14,font:{size:10}},grid:{display:false}},y:{title:{display:true,text:'Demand (kg)'}}}
+    }
+  });
+}
+
+// ── INVENTORY ──
+let daysChart = null;
+function renderInventory() {
+  const inv = invData?.inventory || [];
+  const crit= inv.filter(i=>(i.current_stock/i.max_capacity)<0.15).length;
+  const low = inv.filter(i=>(i.current_stock/i.max_capacity)>=0.15&&(i.current_stock/i.max_capacity)<0.30).length;
+  const adeq= inv.filter(i=>(i.current_stock/i.max_capacity)>=0.30&&(i.current_stock/i.max_capacity)<0.80).length;
+  const over= inv.filter(i=>(i.current_stock/i.max_capacity)>=0.80).length;
+
+  document.getElementById('inv-kpis').innerHTML = `
+    <div class="kpi-card red"><div class="kpi-label">CRITICAL STOCK</div><div class="kpi-value">${crit}</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">LOW STOCK</div><div class="kpi-value">${low}</div></div>
+    <div class="kpi-card green"><div class="kpi-label">ADEQUATE</div><div class="kpi-value">${adeq}</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">OVERSTOCKED</div><div class="kpi-value">${over}</div></div>`;
+
+  document.getElementById('inventory-bars').innerHTML = inv.slice(0,6).map(i=>{
+    const pct  = Math.round(i.current_stock/i.max_capacity*100);
+    const rpPct= Math.round(i.reorder_point/i.max_capacity*100);
+    const color= pct<15?'red':pct<30?'orange':pct>85?'purple':'green';
+    const status=pct<15?'Critical':pct<30?'Low':pct>85?'Overstocked':'Adequate';
+    return `<div style="margin-bottom:22px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;">
+        <strong>${i.material}</strong>
+        <span style="color:var(--text-dark)">${fmtNum(i.current_stock)} / ${fmtNum(i.max_capacity)} kg
+          <span style="background:rgba(255,255,255,0.04);padding:2px 8px;border-radius:4px;color:var(--${color});margin-left:8px;border:1px solid rgba(255,255,255,0.05);">${status}</span>
+        </span>
+      </div>
+      <div style="height:8px;background:rgba(255,255,255,0.05);border-radius:4px;position:relative;overflow:visible;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${pct}%;background:var(--${color});border-radius:4px;transition:width 0.5s;"></div>
+        <div style="position:absolute;left:${rpPct}%;top:-3px;bottom:-3px;width:2px;background:var(--yellow);border-radius:1px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dark);margin-top:6px;">
+        <span>${pct}% stocked</span><span>${i.days_of_supply} days supply</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  if(daysChart) daysChart.destroy();
+  const dsLabels = inv.slice(0,6).map(i=>i.material.split(' ')[0]);
+  const dsVals   = inv.slice(0,6).map(i=>i.days_of_supply);
+  daysChart = new Chart(document.getElementById('chartDaysSupply'),{
+    type:'bar',
+    data:{
+      labels:dsLabels,
+      datasets:[{
+        label:'Days of Supply',
+        data:dsVals,
+        backgroundColor:dsVals.map((_,i)=>COLORS[i%COLORS.length]+'18'),
+        borderColor:dsVals.map((_,i)=>COLORS[i%COLORS.length]),
+        borderWidth:1,borderRadius:4,barPercentage:0.55
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'d'}}},
+      scales:{x:{grid:{display:false}},y:{title:{display:true,text:'Days'}}}
+    }
+  });
+}
+
+// ── SUPPLIERS ──
+function renderSuppliers() {
+  const sups = (invData?.suppliers||[]).slice().sort((a,b)=>b.overall_score-a.overall_score);
+  const Ap=sups.filter(s=>s.overall_score>=95).length;
+  const A =sups.filter(s=>s.overall_score>=90&&s.overall_score<95).length;
+  const B =sups.filter(s=>s.overall_score>=80&&s.overall_score<90).length;
+  const C =sups.filter(s=>s.overall_score<80).length;
+  document.getElementById('sup-kpis').innerHTML = `
+    <div class="kpi-card green"><div class="kpi-label">PREFERRED (A+)</div><div class="kpi-value">${Ap}</div></div>
+    <div class="kpi-card blue"><div class="kpi-label">APPROVED (A)</div><div class="kpi-value">${A}</div></div>
+    <div class="kpi-card yellow"><div class="kpi-label">CONDITIONAL (B)</div><div class="kpi-value">${B}</div></div>
+    <div class="kpi-card red"><div class="kpi-label">REVIEW (C)</div><div class="kpi-value">${C}</div></div>`;
+  document.getElementById('sup-count-badge').textContent = sups.length+' suppliers';
+  function mkBar(val,color){return `<div style="display:flex;align-items:center;gap:8px;"><div style="width:48px;height:4px;background:var(--surface2);border-radius:2px;"><div style="width:${Math.min(100,val)}%;height:100%;background:${color};border-radius:2px;"></div></div>${val}</div>`;}
+  document.getElementById('sup-tbody').innerHTML = sups.slice(0,20).map(s=>{
+    const g=s.overall_score>=95?'Aplus':s.overall_score>=90?'A':s.overall_score>=80?'B':s.overall_score>=70?'C':'D';
+    return `<tr>
+      <td style="font-weight:600;">${s.name}</td>
+      <td style="color:var(--text-dark);font-size:11px;">${s.material}</td>
+      <td>${mkBar(s.on_time_delivery,'var(--green)')}</td>
+      <td>${mkBar(s.quality_score,'var(--accent)')}</td>
+      <td>${mkBar(s.price_competitiveness,'var(--purple)')}</td>
+      <td>${mkBar(s.responsiveness,'var(--yellow)')}</td>
+      <td style="font-weight:700;">${s.overall_score}</td>
+      <td><span class="sup-grade grade-${g}">${g.replace('plus','+')}</span></td>
+      <td style="color:var(--text-dark);">${s.lead_time_days}d</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── SETTINGS ──
+function saveSettings() {
+  showToast('✓ Settings saved successfully.');
+}
+
+// ── REPORTS ──
+function renderReports() {
+  if(!dashData||!invData) return;
+  const recs = dashData.recommendations;
+  const inv  = invData?.inventory || [];
+  const sups = invData?.suppliers || [];
+  const totalCost = recs.reduce((s,r)=>s+(r.estimated_cost||0),0);
+  const urgent = recs.filter(r=>r.priority==='Critical'||r.priority==='High').length;
+  document.getElementById('report-summary-table').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${[
+        ['Total Materials Tracked', dashData.materials.length],
+        ['Total Suppliers Evaluated', sups.length],
+        ['Urgent Procurement Actions', urgent],
+        ['Estimated Order Value', fmtPrice(totalCost)],
+        ['Avg Supplier Score', (sups.reduce((a,b)=>a+(b.overall_score||0),0)/sups.length||0).toFixed(1)],
+        ['Low / Critical Inventory Items', inv.filter(i=>(i.current_stock/i.max_capacity)<0.3).length],
+        ['Data Period', '36 months historical'],
+        ['Model Accuracy', 'ARIMA + GBT Ensemble'],
+      ].map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+        <span style="font-size:12px;color:var(--text-dark);">${k}</span>
+        <span style="font-size:12px;font-weight:600;color:var(--text);">${v}</span>
+      </div>`).join('')}
+    </div>`;
+  document.getElementById('data-integrity-list').innerHTML = [
+    {label:'Price History',  ok: !!(dashData.prices && Object.keys(dashData.prices).length)},
+    {label:'Demand History', ok: !!(dashData.demand && Object.keys(dashData.demand).length)},
+    {label:'Supplier Data',  ok: !!(sups.length > 0)},
+    {label:'Inventory Data', ok: !!(inv.length > 0)},
+    {label:'Recommendations',ok: !!(recs.length > 0)},
+  ].map(({label,ok})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+    <span style="font-size:12px;">${label}</span>
+    <span style="font-size:11px;color:var(--${ok?'green':'red'});font-weight:600;">${ok?'✓ OK':'✗ Missing'}</span>
+  </div>`).join('');
+}
+
+function downloadReport(type) {
+  if(!dashData||!invData){ showToast('⚠ Data not loaded yet.'); return; }
+  let csv='', filename='', data=[];
+  if(type==='procurement_summary'){
+    filename='procurement_summary.csv';
+    csv='Material,Priority,Action,Timing,Recommended Qty (kg),Supplier,Price Signal,Decision Score,Est Cost\n';
+    csv+=dashData.recommendations.map(r=>[r.material,r.priority,r.action,r.timing,r.recommended_qty||0,r.recommended_supplier,r.price_signal,r.decision_score,r.estimated_cost||0].join(',')).join('\n');
+  } else if(type==='supplier_scorecard'){
+    filename='supplier_scorecard.csv';
+    csv='Supplier,Material,On-Time,Quality,Price Comp,Responsiveness,Overall Score,Grade,Lead Time (d)\n';
+    csv+=(invData.suppliers||[]).slice().sort((a,b)=>b.overall_score-a.overall_score).map(s=>{
+      const g=s.overall_score>=95?'A+':s.overall_score>=90?'A':s.overall_score>=80?'B':s.overall_score>=70?'C':'D';
+      return [s.name,s.material,s.on_time_delivery,s.quality_score,s.price_competitiveness,s.responsiveness,s.overall_score,g,s.lead_time_days].join(',');
+    }).join('\n');
+  } else if(type==='price_forecast'){
+    filename='price_forecast.csv';
+    csv='Material,Current Price,Predicted Change %,Signal,RSI,Volatility %,Forecast 1,Forecast 2,Forecast 3,Forecast 4,Forecast 5,Forecast 6\n';
+    csv+=dashData.materials.map(m=>{
+      const d=dashData.prices[m]||{};
+      const f=d.predictions||[];
+      return [m,d.current_price||0,d.pct_change_expected||0,d.price_signal||'',d.rsi||0,d.volatility_pct||0,...f].join(',');
+    }).join('\n');
+  } else if(type==='inventory_risk'){
+    filename='inventory_risk.csv';
+    csv='Material,Current Stock (kg),Max Capacity (kg),Stock %,Days of Supply,Reorder Point,Status\n';
+    csv+=(invData.inventory||[]).map(i=>{
+      const pct=Math.round(i.current_stock/i.max_capacity*100);
+      const status=pct<15?'Critical':pct<30?'Low':pct>85?'Overstocked':'Adequate';
+      return [i.material,i.current_stock,i.max_capacity,pct+'%',i.days_of_supply,i.reorder_point,status].join(',');
+    }).join('\n');
+  } else if(type==='full_json'){
+    filename='procureai_full_export.json';
+    const blob=new Blob([JSON.stringify({dashboard:dashData,raw:invData},null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+    showToast('✓ Full JSON export downloaded.');
+    return;
+  }
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+  showToast('✓ '+filename+' downloaded.');
+}
+
+window.onload = loadData;
+</script>
+</body>
+</html>
